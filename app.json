@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Vibeworks",
-    "slug": "vibeworks",
+    "name": "VibeHub",
+    "slug": "vibehub",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "vibeworks",
+    "scheme": "vibehub",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
@@ -17,10 +17,10 @@
     ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "tr.vibeworks.app",
+      "bundleIdentifier": "tr.vibehub.app",
       "buildNumber": "1",
       "infoPlist": {
-        "NFCReaderUsageDescription": "Scan Vibeworks NFC tags to instantly open artist pages and product details.",
+        "NFCReaderUsageDescription": "Scan VibeHub NFC tags to instantly open artist pages and product details.",
         "NSCameraUsageDescription": "Scan QR codes to access tickets, products, and event pages.",
         "NSFaceIDUsageDescription": "Authenticate quickly and confirm purchases with Face ID.",
         "NSPhotoLibraryUsageDescription": "Upload photos to forum posts and update your avatar.",
@@ -40,7 +40,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#7C3AED"
       },
-      "package": "tr.vibeworks.app",
+      "package": "tr.vibehub.app",
       "versionCode": 1,
       "permissions": [
         "android.permission.NFC",
@@ -61,7 +61,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Scan QR codes to access Vibeworks content."
+          "cameraPermission": "Scan QR codes to access VibeHub content."
         }
       ],
       [
@@ -74,13 +74,13 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Use Face ID to unlock Vibeworks and confirm payments."
+          "faceIDPermission": "Use Face ID to unlock VibeHub and confirm payments."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Vibeworks to access your photos for forum posts and avatars."
+          "photosPermission": "Allow VibeHub to access your photos for forum posts and avatars."
         }
       ],
       "expo-asset",

@@ -44,7 +44,7 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>vibeworks</Text>
+          <Text style={styles.logo}>vibehub</Text>
           <Text style={styles.tagline}>Merch for fans, by fans</Text>
         </View>
 

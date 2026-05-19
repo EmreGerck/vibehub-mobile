@@ -33,7 +33,7 @@ export default function SplashOverlay({ visible }: SplashOverlayProps) {
       <View style={styles.content}>
         <Text style={styles.bolt}>⚡</Text>
         <Text style={styles.title}>VibeHub</Text>
-        <Text style={styles.subtitle}>by Vibeworks</Text>
+        <Text style={styles.subtitle}>by VibeHub</Text>
       </View>
     </Animated.View>
   );

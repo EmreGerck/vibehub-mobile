@@ -58,7 +58,7 @@ export default function ProductDetailScreen() {
   }
 
   async function handleShare() {
-    await Share.share({ message: `Check out ${product!.name} on Vibeworks!` });
+    await Share.share({ message: `Check out ${product!.name} on VibeHub!` });
   }
 
   async function handleWishlist() {

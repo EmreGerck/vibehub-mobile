@@ -66,7 +66,7 @@ export default function RegisterScreen() {
         </TouchableOpacity>
 
         <Text style={styles.title}>Create account</Text>
-        <Text style={styles.subtitle}>Join the Vibeworks fan community</Text>
+        <Text style={styles.subtitle}>Join the VibeHub fan community</Text>
 
         <View style={styles.form}>
           <View style={styles.row}>

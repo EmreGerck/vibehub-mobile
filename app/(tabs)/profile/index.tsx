@@ -86,7 +86,7 @@ export default function ProfileScreen() {
         ))}
       </View>
 
-      <Text style={styles.version}>Vibeworks v1.0.0</Text>
+      <Text style={styles.version}>VibeHub v1.0.0</Text>
     </ScrollView>
   );
 }

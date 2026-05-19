@@ -164,13 +164,13 @@ export default function SettingsScreen() {
         <SettingRow
           kind="nav"
           label="Privacy Policy"
-          onPress={() => Linking.openURL('https://vibeworks.com.tr/privacy')}
+          onPress={() => Linking.openURL('https://vibehub.com.tr/privacy')}
         />
         <View style={styles.divider} />
         <SettingRow
           kind="nav"
           label="Terms of Service"
-          onPress={() => Linking.openURL('https://vibeworks.com.tr/terms')}
+          onPress={() => Linking.openURL('https://vibehub.com.tr/terms')}
         />
       </Section>
 

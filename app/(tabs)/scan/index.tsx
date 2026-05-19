@@ -58,7 +58,7 @@ export default function ScanScreen() {
         const payload = Ndef.text.decodePayload(tag.ndefMessage[0].payload as any);
         resolveDeepLink(payload);
       } else {
-        Alert.alert('Unknown tag', 'This NFC tag does not contain Vibeworks data.');
+        Alert.alert('Unknown tag', 'This NFC tag does not contain VibeHub data.');
       }
     } catch (err: any) {
       if (err?.message !== 'cancelled') {
@@ -73,9 +73,9 @@ export default function ScanScreen() {
   // ─── Deep link resolver ───────────────────────────────────────────────────
   function resolveDeepLink(raw: string) {
     try {
-      // vibeworks://product/ID  or  vibeworks://vendor/SLUG
-      const url = raw.startsWith('vibeworks://') ? raw : `vibeworks://${raw.replace(/^https?:\/\/[^/]+\//, '')}`;
-      const [, type, param] = url.replace('vibeworks://', '').split('/');
+      // vibehub://product/ID  or  vibehub://vendor/SLUG
+      const url = raw.startsWith('vibehub://') ? raw : `vibehub://${raw.replace(/^https?:\/\/[^/]+\//, '')}`;
+      const [, type, param] = url.replace('vibehub://', '').split('/');
       if (type === 'product') router.push(`/product/${param}`);
       else if (type === 'vendor') router.push(`/vendor/${param}`);
       else Alert.alert('Unrecognized code', raw);
@@ -156,9 +156,9 @@ export default function ScanScreen() {
         <View style={styles.nfcContainer}>
           <View style={styles.nfcCard}>
             <Text style={styles.nfcIcon}>⦿</Text>
-            <Text style={styles.nfcTitle}>Tap a Vibeworks NFC tag</Text>
+            <Text style={styles.nfcTitle}>Tap a VibeHub NFC tag</Text>
             <Text style={styles.nfcSubtext}>
-              Hold your phone near a printed Vibeworks NFC tag to instantly open the artist page.
+              Hold your phone near a printed VibeHub NFC tag to instantly open the artist page.
             </Text>
             {Platform.OS === 'ios' && (
               <Text style={styles.nfcNote}>

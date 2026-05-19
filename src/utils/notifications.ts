@@ -39,7 +39,7 @@ export async function registerForPushNotificationsAsync(): Promise<void> {
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'Vibeworks',
+      name: 'VibeHub',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#7C3AED',
