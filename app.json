@@ -1,0 +1,98 @@
+{
+  "expo": {
+    "name": "Vibeworks",
+    "slug": "vibeworks",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "vibeworks",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#7C3AED"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "tr.vibeworks.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NFCReaderUsageDescription": "Scan Vibeworks NFC tags to instantly open artist pages and product details.",
+        "NSCameraUsageDescription": "Scan QR codes to access tickets, products, and event pages.",
+        "NSFaceIDUsageDescription": "Authenticate quickly and confirm purchases with Face ID.",
+        "NSPhotoLibraryUsageDescription": "Upload photos to forum posts and update your avatar.",
+        "NSCalendarsUsageDescription": "Add artist events to your calendar.",
+        "com.apple.developer.nfc.readersession.formats": [
+          "NDEF"
+        ]
+      },
+      "entitlements": {
+        "com.apple.developer.nfc.readersession.formats": [
+          "NDEF"
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#7C3AED"
+      },
+      "package": "tr.vibeworks.app",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.NFC",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Scan QR codes to access Vibeworks content."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#7C3AED"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Use Face ID to unlock Vibeworks and confirm payments."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Vibeworks to access your photos for forum posts and avatars."
+        }
+      ],
+      "expo-asset",
+      "@sentry/react-native"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
