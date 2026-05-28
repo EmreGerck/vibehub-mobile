@@ -21,12 +21,22 @@ export interface LoginDto {
   password: string;
 }
 
+/**
+ * Backend RegisterDto (backend/src/auth/dto/register.dto.ts):
+ *   - termsAccepted + privacyAccepted are REQUIRED (must be true)
+ *   - firstName/lastName/phone are NOT in the DTO and get stripped by
+ *     class-validator whitelist; combine into `name` if needed and PATCH
+ *     /auth/profile after registration.
+ */
 export interface RegisterDto {
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
+  termsAccepted: true;
+  privacyAccepted: true;
+  marketingConsent?: boolean;
+  name?: string;
+  /** Honeypot — must stay empty. */
+  website?: string;
 }
 
 // ─── Vendor ──────────────────────────────────────────────────────────────────
@@ -83,52 +93,69 @@ export interface Category {
 }
 
 // ─── Cart ────────────────────────────────────────────────────────────────────
+// Backend returns EnrichedCartItem (from CartService.enrichCart). Cart entries
+// are keyed by `variantId` (no separate row id). Field names match backend
+// canonical: `qty`, `lineTotal`. Use `variantId` for update/remove operations.
 
 export interface CartItem {
-  id: string;
-  product: Product;
-  variant: ProductVariant;
-  quantity: number;
+  variantId: string;
+  qty: number;
   unitPrice: number;
+  lineTotal: number;
+  tenantId: string;
+  tenantDisplayName: string;
+  product: {
+    id: string;
+    title: string;
+    images: string[];
+  };
+  variant: {
+    sku: string;
+    attributes: Record<string, any>;
+    stockQty: number;
+  };
 }
 
 export interface Cart {
-  id: string;
   items: CartItem[];
-  subtotal: number;
   total: number;
   itemCount: number;
 }
 
 // ─── Order ───────────────────────────────────────────────────────────────────
+// Matches backend Prisma OrderStatus enum exactly. PLACED → CONFIRMED → SHIPPED
+// → DELIVERED is the happy path; REFUND_REQUESTED + REFUNDED + CANCELLED branch off.
 
 export type OrderStatus =
-  | 'PENDING'
+  | 'PLACED'
   | 'CONFIRMED'
-  | 'PROCESSING'
   | 'SHIPPED'
   | 'DELIVERED'
   | 'CANCELLED'
+  | 'REFUND_REQUESTED'
   | 'REFUNDED';
 
 export interface OrderItem {
   id: string;
   product: Pick<Product, 'id' | 'name' | 'images'>;
   variant: ProductVariant;
-  quantity: number;
-  unitPrice: number;
-  total: number;
+  qty: number;
+  unitPriceSnapshot: number;
 }
 
+/**
+ * Mirrors backend ShippingAddressDto. Note `name` not `fullName` — that was a
+ * mobile-side naming drift that broke checkout.
+ */
 export interface ShippingAddress {
-  fullName: string;
+  name: string;
   line1: string;
   line2?: string;
   city: string;
-  state?: string;
+  state: string;
   postalCode: string;
   country: string;
-  phone: string;
+  phone?: string;
 }
 
 export interface Order {

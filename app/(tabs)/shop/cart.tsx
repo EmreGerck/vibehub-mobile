@@ -22,6 +22,8 @@ export default function CartScreen() {
   }
 
   function renderItem({ item }: { item: CartItem }) {
+    const variantLabel = [item.variant?.attributes?.size, item.variant?.attributes?.color]
+      .filter(Boolean).join(' · ');
     return (
       <View style={styles.item}>
         <Image
@@ -30,32 +32,30 @@ export default function CartScreen() {
           resizeMode="cover"
         />
         <View style={styles.itemInfo}>
-          <Text style={styles.itemName} numberOfLines={2}>{item.product.name}</Text>
-          <Text style={styles.itemVariant}>
-            {[item.variant.size, item.variant.color].filter(Boolean).join(' · ')}
-          </Text>
-          <Text style={styles.itemPrice}>₺{(item.unitPrice * item.quantity).toLocaleString('tr-TR')}</Text>
+          <Text style={styles.itemName} numberOfLines={2}>{item.product.title}</Text>
+          {variantLabel ? <Text style={styles.itemVariant}>{variantLabel}</Text> : null}
+          <Text style={styles.itemPrice}>₺{item.lineTotal.toLocaleString('tr-TR')}</Text>
         </View>
         <View style={styles.qtyControl}>
           <TouchableOpacity
             style={styles.qtyBtn}
             onPress={() => {
-              if (item.quantity === 1) {
+              if (item.qty === 1) {
                 Alert.alert('Remove item', 'Remove this item from your cart?', [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Remove', style: 'destructive', onPress: () => removeItem(item.id) },
+                  { text: 'Remove', style: 'destructive', onPress: () => removeItem(item.variantId) },
                 ]);
               } else {
-                updateItem({ itemId: item.id, quantity: item.quantity - 1 });
+                updateItem({ variantId: item.variantId, qty: item.qty - 1 });
               }
             }}
           >
             <Text style={styles.qtyBtnText}>−</Text>
           </TouchableOpacity>
-          <Text style={styles.qty}>{item.quantity}</Text>
+          <Text style={styles.qty}>{item.qty}</Text>
           <TouchableOpacity
             style={styles.qtyBtn}
-            onPress={() => updateItem({ itemId: item.id, quantity: item.quantity + 1 })}
+            onPress={() => updateItem({ variantId: item.variantId, qty: item.qty + 1 })}
           >
             <Text style={styles.qtyBtnText}>+</Text>
           </TouchableOpacity>
@@ -89,7 +89,7 @@ export default function CartScreen() {
     <View style={styles.container}>
       <FlatList
         data={cart.items}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.variantId}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -98,7 +98,7 @@ export default function CartScreen() {
       <View style={styles.footer}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Subtotal ({cart.itemCount} items)</Text>
-          <Text style={styles.totalValue}>₺{cart.subtotal.toLocaleString('tr-TR')}</Text>
+          <Text style={styles.totalValue}>₺{cart.total.toLocaleString('tr-TR')}</Text>
         </View>
         <TouchableOpacity style={styles.checkoutBtn} onPress={handleCheckout} activeOpacity={0.85}>
           <Text style={styles.checkoutBtnText}>

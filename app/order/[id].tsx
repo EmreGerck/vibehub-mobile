@@ -63,10 +63,12 @@ export default function OrderDetailScreen() {
                 {[item.variant.size, item.variant.color].filter(Boolean).join(' · ')}
               </Text>
               <Text style={styles.itemPrice}>
-                {item.quantity} × ₺{item.unitPrice.toLocaleString('tr-TR')}
+                {item.qty} × ₺{Number(item.unitPriceSnapshot).toLocaleString('tr-TR')}
               </Text>
             </View>
-            <Text style={styles.itemTotal}>₺{item.total.toLocaleString('tr-TR')}</Text>
+            <Text style={styles.itemTotal}>
+              ₺{(Number(item.unitPriceSnapshot) * item.qty).toLocaleString('tr-TR')}
+            </Text>
           </View>
         ))}
       </View>
@@ -75,7 +77,7 @@ export default function OrderDetailScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Shipping address</Text>
         <View style={styles.addressCard}>
-          <Text style={styles.addressName}>{order.shippingAddress.fullName}</Text>
+          <Text style={styles.addressName}>{order.shippingAddress.name}</Text>
           <Text style={styles.addressLine}>{order.shippingAddress.line1}</Text>
           {order.shippingAddress.line2 && (
             <Text style={styles.addressLine}>{order.shippingAddress.line2}</Text>

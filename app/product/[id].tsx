@@ -45,11 +45,11 @@ export default function ProductDetailScreen() {
   function handleAddToCart() {
     if (!variant) return;
     addToCart(
-      { variantId: variant.id, quantity: 1 },
+      { variantId: variant.id, qty: 1 },
       {
         onSuccess: () =>
           Alert.alert('Added to cart', product!.name, [
-            { text: 'View cart', onPress: () => router.push('/(tabs)/shop/cart') },
+            { text: 'View cart', onPress: () => router.push('/(tabs)/cart') },
             { text: 'Continue shopping', style: 'cancel' },
           ]),
         onError: () => Alert.alert('Error', 'Failed to add to cart.'),

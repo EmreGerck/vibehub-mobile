@@ -18,8 +18,8 @@ export function useAddToCart() {
   const qc = useQueryClient();
   const setCart = useCartStore((s) => s.setCart);
   return useMutation({
-    mutationFn: ({ variantId, quantity }: { variantId: string; quantity: number }) =>
-      addToCart(variantId, quantity),
+    mutationFn: ({ variantId, qty }: { variantId: string; qty: number }) =>
+      addToCart(variantId, qty),
     onSuccess: (cart) => {
       setCart(cart);
       qc.setQueryData(['cart'], cart);
@@ -31,8 +31,8 @@ export function useUpdateCartItem() {
   const qc = useQueryClient();
   const setCart = useCartStore((s) => s.setCart);
   return useMutation({
-    mutationFn: ({ itemId, quantity }: { itemId: string; quantity: number }) =>
-      updateCartItem(itemId, quantity),
+    mutationFn: ({ variantId, qty }: { variantId: string; qty: number }) =>
+      updateCartItem(variantId, qty),
     onSuccess: (cart) => {
       setCart(cart);
       qc.setQueryData(['cart'], cart);
@@ -44,7 +44,7 @@ export function useRemoveCartItem() {
   const qc = useQueryClient();
   const setCart = useCartStore((s) => s.setCart);
   return useMutation({
-    mutationFn: (itemId: string) => removeCartItem(itemId),
+    mutationFn: (variantId: string) => removeCartItem(variantId),
     onSuccess: (cart) => {
       setCart(cart);
       qc.setQueryData(['cart'], cart);

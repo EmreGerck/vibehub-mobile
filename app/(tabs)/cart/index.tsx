@@ -24,14 +24,16 @@ export default function CartTabScreen() {
     router.push('/checkout');
   }
 
-  function handleRemove(itemId: string) {
+  function handleRemove(variantId: string) {
     Alert.alert('Remove item', 'Remove this item from your cart?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => removeItem(itemId) },
+      { text: 'Remove', style: 'destructive', onPress: () => removeItem(variantId) },
     ]);
   }
 
   function renderItem({ item }: { item: CartItem }) {
+    const variantLabel = [item.variant?.attributes?.size, item.variant?.attributes?.color]
+      .filter(Boolean).join(' · ');
     return (
       <View style={styles.item}>
         <Image
@@ -41,13 +43,11 @@ export default function CartTabScreen() {
         />
         <View style={styles.itemInfo}>
           <Text style={styles.itemName} numberOfLines={2}>
-            {item.product.name}
+            {item.product.title}
           </Text>
-          <Text style={styles.itemVariant}>
-            {[item.variant.size, item.variant.color].filter(Boolean).join(' · ')}
-          </Text>
+          {variantLabel ? <Text style={styles.itemVariant}>{variantLabel}</Text> : null}
           <Text style={styles.itemPrice}>
-            ₺{(item.unitPrice * item.quantity).toLocaleString('tr-TR')}
+            ₺{item.lineTotal.toLocaleString('tr-TR')}
           </Text>
         </View>
         <View style={styles.controls}>
@@ -55,24 +55,24 @@ export default function CartTabScreen() {
             <TouchableOpacity
               style={styles.qtyBtn}
               onPress={() => {
-                if (item.quantity === 1) {
-                  handleRemove(item.id);
+                if (item.qty === 1) {
+                  handleRemove(item.variantId);
                 } else {
-                  updateItem({ itemId: item.id, quantity: item.quantity - 1 });
+                  updateItem({ variantId: item.variantId, qty: item.qty - 1 });
                 }
               }}
             >
               <Text style={styles.qtyBtnText}>−</Text>
             </TouchableOpacity>
-            <Text style={styles.qty}>{item.quantity}</Text>
+            <Text style={styles.qty}>{item.qty}</Text>
             <TouchableOpacity
               style={styles.qtyBtn}
-              onPress={() => updateItem({ itemId: item.id, quantity: item.quantity + 1 })}
+              onPress={() => updateItem({ variantId: item.variantId, qty: item.qty + 1 })}
             >
               <Text style={styles.qtyBtnText}>+</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.removeBtn} onPress={() => handleRemove(item.id)}>
+          <TouchableOpacity style={styles.removeBtn} onPress={() => handleRemove(item.variantId)}>
             <Text style={styles.removeBtnText}>✕</Text>
           </TouchableOpacity>
         </View>
@@ -124,7 +124,7 @@ export default function CartTabScreen() {
 
       <FlatList
         data={cart.items}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.variantId}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -134,7 +134,7 @@ export default function CartTabScreen() {
       <View style={styles.footer}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Subtotal</Text>
-          <Text style={styles.totalValue}>₺{cart.subtotal.toLocaleString('tr-TR')}</Text>
+          <Text style={styles.totalValue}>₺{cart.total.toLocaleString('tr-TR')}</Text>
         </View>
         <TouchableOpacity
           style={styles.checkoutBtn}

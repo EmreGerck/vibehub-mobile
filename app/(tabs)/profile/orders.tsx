@@ -11,23 +11,23 @@ import { useOrders } from '@/hooks/useOrders';
 import type { Order, OrderStatus } from '@/types';
 
 const STATUS_COLOR: Record<OrderStatus, string> = {
-  PENDING:    '#F59E0B',
-  CONFIRMED:  '#3B82F6',
-  PROCESSING: '#8B5CF6',
-  SHIPPED:    '#7C3AED',
-  DELIVERED:  '#10B981',
-  CANCELLED:  '#EF4444',
-  REFUNDED:   '#6B7280',
+  PLACED:           '#F59E0B',
+  CONFIRMED:        '#3B82F6',
+  SHIPPED:          '#7C3AED',
+  DELIVERED:        '#10B981',
+  CANCELLED:        '#EF4444',
+  REFUND_REQUESTED: '#F97316',
+  REFUNDED:         '#6B7280',
 };
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
-  PENDING:    'Pending',
-  CONFIRMED:  'Confirmed',
-  PROCESSING: 'Processing',
-  SHIPPED:    'Shipped',
-  DELIVERED:  'Delivered',
-  CANCELLED:  'Cancelled',
-  REFUNDED:   'Refunded',
+  PLACED:           'Alındı',
+  CONFIRMED:        'Onaylandı',
+  SHIPPED:          'Kargoda',
+  DELIVERED:        'Teslim Edildi',
+  CANCELLED:        'İptal Edildi',
+  REFUND_REQUESTED: 'İade Bekliyor',
+  REFUNDED:         'İade Edildi',
 };
 
 export default function OrdersScreen() {

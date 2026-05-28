@@ -13,43 +13,65 @@ import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { useRegister } from '@/hooks/useAuth';
 
+/**
+ * Backend register DTO requires `termsAccepted: true` + `privacyAccepted: true`.
+ * The user's name is captured as a single `name` field (matches backend).
+ * Phone collected at registration is stored locally to PATCH /auth/profile
+ * after first login in a follow-up sprint.
+ */
 export default function RegisterScreen() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName]   = useState('');
+  const [name, setName]           = useState('');
   const [email, setEmail]         = useState('');
-  const [phone, setPhone]         = useState('');
   const [password, setPassword]   = useState('');
   const [confirm, setConfirm]     = useState('');
+  const [acceptTerms, setAcceptTerms]       = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy]   = useState(false);
+  const [marketingOk, setMarketingOk]       = useState(false);
 
   const { mutate: register, isPending } = useRegister();
 
   function handleRegister() {
-    if (!firstName || !lastName || !email || !password) {
-      Alert.alert('Missing fields', 'Please fill in all required fields.');
+    if (!name.trim() || !email.trim() || !password) {
+      Alert.alert('Eksik alan', 'Lütfen ad, e-posta ve şifre alanlarını doldur.');
       return;
     }
     if (password.length < 8) {
-      Alert.alert('Weak password', 'Password must be at least 8 characters.');
+      Alert.alert('Zayıf şifre', 'Şifre en az 8 karakter olmalı.');
       return;
     }
     if (password !== confirm) {
-      Alert.alert('Password mismatch', 'Passwords do not match.');
+      Alert.alert('Şifreler uyuşmuyor', 'İki şifre alanını aynı doldur.');
+      return;
+    }
+    if (!acceptTerms) {
+      Alert.alert('Kullanım Şartları', 'Devam etmek için Kullanım Şartlarını kabul etmelisin.');
+      return;
+    }
+    if (!acceptPrivacy) {
+      Alert.alert('Gizlilik & KVKK', 'Devam etmek için Gizlilik Politikası + KVKK aydınlatmasını kabul etmelisin.');
       return;
     }
 
     register(
-      { firstName, lastName, email: email.trim().toLowerCase(), password, phone: phone || undefined },
+      {
+        email: email.trim().toLowerCase(),
+        password,
+        name: name.trim(),
+        termsAccepted: true,
+        privacyAccepted: true,
+        marketingConsent: marketingOk,
+      },
       {
         onSuccess: () => {
           Alert.alert(
-            'Account created!',
-            'Please sign in with your new credentials.',
-            [{ text: 'Sign in', onPress: () => router.replace('/(auth)/login') }],
+            'Hesabın oluşturuldu! 🎉',
+            'Şimdi giriş yapabilirsin.',
+            [{ text: 'Giriş yap', onPress: () => router.replace('/(auth)/login') }],
           );
         },
         onError: (err: any) => {
-          const msg = err?.response?.data?.message ?? 'Registration failed.';
-          Alert.alert('Error', Array.isArray(msg) ? msg.join('\n') : msg);
+          const msg = err?.response?.data?.message ?? 'Kayıt başarısız.';
+          Alert.alert('Hata', Array.isArray(msg) ? msg.join('\n') : msg);
         },
       },
     );
@@ -62,43 +84,30 @@ export default function RegisterScreen() {
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <TouchableOpacity style={styles.back} onPress={() => router.back()}>
-          <Text style={styles.backText}>← Back</Text>
+          <Text style={styles.backText}>← Geri</Text>
         </TouchableOpacity>
 
-        <Text style={styles.title}>Create account</Text>
-        <Text style={styles.subtitle}>Join the VibeHub fan community</Text>
+        <Text style={styles.title}>Hesap Oluştur</Text>
+        <Text style={styles.subtitle}>VibeHub fan topluluğuna katıl</Text>
 
         <View style={styles.form}>
-          <View style={styles.row}>
-            <View style={[styles.field, styles.flex]}>
-              <Text style={styles.label}>First name *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Emre"
-                placeholderTextColor="#9CA3AF"
-                value={firstName}
-                onChangeText={setFirstName}
-                autoCapitalize="words"
-              />
-            </View>
-            <View style={[styles.field, styles.flex]}>
-              <Text style={styles.label}>Last name *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Gerçek"
-                placeholderTextColor="#9CA3AF"
-                value={lastName}
-                onChangeText={setLastName}
-                autoCapitalize="words"
-              />
-            </View>
+          <View style={styles.field}>
+            <Text style={styles.label}>Ad Soyad *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Emre Gerçek"
+              placeholderTextColor="#9CA3AF"
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+            />
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Email *</Text>
+            <Text style={styles.label}>E-posta *</Text>
             <TextInput
               style={styles.input}
-              placeholder="you@example.com"
+              placeholder="siz@ornek.com"
               placeholderTextColor="#9CA3AF"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -109,22 +118,10 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Phone</Text>
+            <Text style={styles.label}>Şifre *</Text>
             <TextInput
               style={styles.input}
-              placeholder="+90 555 000 00 00"
-              placeholderTextColor="#9CA3AF"
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={setPhone}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>Password *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Min. 8 characters"
+              placeholder="En az 8 karakter"
               placeholderTextColor="#9CA3AF"
               secureTextEntry
               value={password}
@@ -133,10 +130,10 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Confirm password *</Text>
+            <Text style={styles.label}>Şifre tekrar *</Text>
             <TextInput
               style={[styles.input, confirm && confirm !== password && styles.inputError]}
-              placeholder="Repeat password"
+              placeholder="Şifreni tekrar gir"
               placeholderTextColor="#9CA3AF"
               secureTextEntry
               value={confirm}
@@ -144,24 +141,75 @@ export default function RegisterScreen() {
             />
           </View>
 
+          {/* Consent checkboxes — required by backend */}
+          <ConsentRow
+            checked={acceptTerms}
+            onToggle={() => setAcceptTerms(v => !v)}
+            label={
+              <Text style={styles.consentText}>
+                <Text style={styles.consentLink}>Kullanım Şartları</Text>nı okudum ve kabul ediyorum (14 günlük cayma hakkı dahil) *
+              </Text>
+            }
+          />
+          <ConsentRow
+            checked={acceptPrivacy}
+            onToggle={() => setAcceptPrivacy(v => !v)}
+            label={
+              <Text style={styles.consentText}>
+                <Text style={styles.consentLink}>Gizlilik Politikası</Text> ve <Text style={styles.consentLink}>KVKK Aydınlatmasını</Text> kabul ediyorum *
+              </Text>
+            }
+          />
+          <ConsentRow
+            checked={marketingOk}
+            onToggle={() => setMarketingOk(v => !v)}
+            label={
+              <Text style={styles.consentText}>
+                Pazarlama e-postaları, kampanya ve güncellemeleri almayı kabul ediyorum (isteğe bağlı)
+              </Text>
+            }
+          />
+
           <TouchableOpacity
-            style={[styles.primaryBtn, isPending && styles.primaryBtnDisabled]}
+            style={[
+              styles.primaryBtn,
+              (isPending || !acceptTerms || !acceptPrivacy) && styles.primaryBtnDisabled,
+            ]}
             onPress={handleRegister}
-            disabled={isPending}
+            disabled={isPending || !acceptTerms || !acceptPrivacy}
             activeOpacity={0.85}
           >
             <Text style={styles.primaryBtnText}>
-              {isPending ? 'Creating account…' : 'Create account'}
+              {isPending ? 'Hesap oluşturuluyor…' : 'Hesap Oluştur'}
             </Text>
           </TouchableOpacity>
 
           <View style={styles.loginRow}>
-            <Text style={styles.loginText}>Already have an account? </Text>
-            <Link href="/(auth)/login" style={styles.loginLink}>Sign in</Link>
+            <Text style={styles.loginText}>Hesabın var mı? </Text>
+            <Link href="/(auth)/login" style={styles.loginLink}>Giriş yap</Link>
           </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+function ConsentRow({
+  checked,
+  onToggle,
+  label,
+}: {
+  checked: boolean;
+  onToggle: () => void;
+  label: React.ReactNode;
+}) {
+  return (
+    <TouchableOpacity style={styles.consentRow} onPress={onToggle} activeOpacity={0.7}>
+      <View style={[styles.checkbox, checked && styles.checkboxOn]}>
+        {checked && <Text style={styles.checkmark}>✓</Text>}
+      </View>
+      <View style={styles.consentLabelWrap}>{label}</View>
+    </TouchableOpacity>
   );
 }
 
@@ -178,7 +226,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '800', color: '#111827', marginBottom: 4 },
   subtitle: { fontSize: 15, color: '#6B7280', marginBottom: 28 },
   form: { gap: 14 },
-  row: { flexDirection: 'row', gap: 12 },
   field: { gap: 6 },
   label: { fontSize: 14, fontWeight: '600', color: '#374151' },
   input: {
@@ -192,6 +239,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   inputError: { borderColor: '#EF4444' },
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: '#9CA3AF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    marginTop: 1,
+  },
+  checkboxOn: {
+    backgroundColor: '#7C3AED',
+    borderColor: '#7C3AED',
+  },
+  checkmark: { color: '#FFFFFF', fontWeight: '800', fontSize: 12 },
+  consentLabelWrap: { flex: 1 },
+  consentText: { fontSize: 13, color: '#374151', lineHeight: 18 },
+  consentLink: { color: '#7C3AED', fontWeight: '600' },
   primaryBtn: {
     height: 52,
     backgroundColor: '#7C3AED',
@@ -205,7 +277,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  primaryBtnDisabled: { opacity: 0.6 },
+  primaryBtnDisabled: { opacity: 0.5 },
   primaryBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   loginRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 4 },
   loginText: { fontSize: 14, color: '#6B7280' },

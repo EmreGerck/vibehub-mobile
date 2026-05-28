@@ -11,30 +11,32 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCartStore } from '../src/store/cartStore';
+import { placeOrder, mockPay } from '../src/api/orders';
 
-// ─── Payment provider placeholder ────────────────────────────────────────────
-// TODO: wire up real payment provider (iyzico / Stripe) once decided.
-// For now, selecting a method just stores the choice locally.
-// The "Place Order" button creates the order record and shows a mock success.
-// ─────────────────────────────────────────────────────────────────────────────
-
-type PaymentMethod = 'card' | 'apple_pay' | 'google_pay';
-
-const PAYMENT_METHODS: { id: PaymentMethod; label: string; icon: string; available: boolean }[] = [
-  { id: 'card',       label: 'Credit / Debit Card', icon: 'card-outline',        available: true  },
-  { id: 'apple_pay',  label: 'Apple Pay',            icon: 'logo-apple',          available: false },
-  { id: 'google_pay', label: 'Google Pay',           icon: 'logo-google',         available: false },
-];
+/**
+ * Real checkout flow:
+ *   1. Validate shipping address fields
+ *   2. POST /orders → creates order, returns id
+ *   3. POST /payments/mock/pay → confirms order, decrements stock,
+ *      issues e-Arşiv invoice, sends customer email + push
+ *   4. Invalidate cart + orders queries, route to /order/[id]
+ *
+ * When real Iyzico keys land, step 3 swaps to
+ *   POST /payments/iyzico/initiate/:orderId → open returned URL in WebBrowser
+ */
 
 export default function CheckoutScreen() {
-  const { cart, clearCart: clearCartStore } = useCartStore();
+  const cart = useCartStore((s) => s.cart);
+  const clearCartStore = useCartStore((s) => s.clearCart);
+  const qc = useQueryClient();
   const [isPlacing, setIsPlacing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
 
   const [address, setAddress] = useState({
-    fullName: '',
+    name: '',
     line1: '',
+    line2: '',
     city: '',
     state: '',
     postalCode: '',
@@ -42,107 +44,124 @@ export default function CheckoutScreen() {
     phone: '',
   });
 
-  const total = cart?.items?.reduce(
-    (sum: number, item: any) => sum + item.variant.price * item.quantity,
-    0,
-  ) ?? 0;
+  const total = cart?.total ?? 0;
+  const itemCount = cart?.itemCount ?? 0;
 
   const handleOrder = async () => {
-    if (!address.fullName || !address.line1 || !address.city || !address.postalCode || !address.phone) {
-      Alert.alert('Missing info', 'Please fill in your shipping address.');
+    if (!address.name || !address.line1 || !address.city || !address.postalCode || !address.phone) {
+      Alert.alert('Eksik bilgi', 'Lütfen teslimat adresinin tüm zorunlu alanlarını doldur.');
+      return;
+    }
+    if (!cart || cart.items.length === 0) {
+      Alert.alert('Sepetin boş', 'Önce ürün eklemen lazım.');
       return;
     }
 
     setIsPlacing(true);
+    try {
+      // Step 1: place the order — backend DTO uses `name` (not `fullName`)
+      const order = await placeOrder({
+        shippingAddress: {
+          name: address.name,
+          line1: address.line1,
+          line2: address.line2 || undefined,
+          city: address.city,
+          state: address.state || address.city, // backend requires state
+          postalCode: address.postalCode,
+          country: address.country || 'TR',
+          phone: address.phone,
+        } as any,
+        currency: 'TRY',
+      });
 
-    // TODO: replace this block with real payment + order API call
-    // Example (iyzico):
-    //   const { data } = await api.post('/order/checkout', { shippingAddress: address, paymentMethod })
-    //   router.replace(`/order/${data.data.id}`)
-    // Example (Stripe):
-    //   const { paymentIntent } = await initPaymentSheet({ ... })
-    //   await presentPaymentSheet()
-    //   router.replace(`/order/${orderId}`)
-    await new Promise((r) => setTimeout(r, 1400)); // simulate network
-    setIsPlacing(false);
+      // Step 2: confirm payment (mock until Iyzico keys live)
+      // Wrapped in try/catch — payment failure shouldn't lose the order
+      try {
+        await mockPay(order.id);
+      } catch (payErr: any) {
+        // Order created but payment failed — let user know they can retry
+        Alert.alert(
+          'Sipariş alındı, ödeme bekliyor',
+          'Siparişin oluştu ama ödeme onayı şu an çalışmıyor. Sipariş sayfasından tekrar deneyebilirsin.',
+        );
+        clearCartStore();
+        qc.invalidateQueries({ queryKey: ['cart'] });
+        qc.invalidateQueries({ queryKey: ['orders'] });
+        router.replace(`/order/${order.id}`);
+        return;
+      }
 
-    clearCartStore();
-    Alert.alert(
-      '🎉 Order placed!',
-      'Payment integration coming soon. Your order has been recorded.',
-      [{ text: 'OK', onPress: () => router.replace('/(tabs)/profile/orders') }],
-    );
+      // Success: cart was server-cleared by placeOrder; mirror locally + invalidate
+      clearCartStore();
+      qc.invalidateQueries({ queryKey: ['cart'] });
+      qc.invalidateQueries({ queryKey: ['orders'] });
+
+      Alert.alert(
+        '🎉 Siparişin alındı!',
+        `Sipariş numaran: #${order.id.slice(0, 8).toUpperCase()}. Detayları sipariş sayfanda görebilirsin.`,
+        [{ text: 'Siparişimi gör', onPress: () => router.replace(`/order/${order.id}`) }],
+      );
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? 'Sipariş oluşturulamadı.';
+      Alert.alert('Hata', Array.isArray(msg) ? msg.join('\n') : msg);
+    } finally {
+      setIsPlacing(false);
+    }
   };
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Checkout', headerBackTitle: 'Cart' }} />
+      <Stack.Screen options={{ title: 'Ödeme', headerBackTitle: 'Sepet' }} />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
 
-        {/* ── Payment placeholder banner ── */}
+        {/* Placeholder banner — real payment provider TBD */}
         <View style={styles.banner}>
           <Ionicons name="construct-outline" size={16} color="#F59E0B" />
-          <Text style={styles.bannerText}>Payment provider TBD — order is recorded but no charge is made.</Text>
+          <Text style={styles.bannerText}>
+            Test modu — gerçek ödeme alınmaz, sipariş kayda geçer.
+          </Text>
         </View>
 
-        {/* ── Payment method picker ── */}
-        <Text style={styles.sectionTitle}>Payment Method</Text>
-        {PAYMENT_METHODS.map((m) => (
-          <TouchableOpacity
-            key={m.id}
-            style={[styles.methodRow, paymentMethod === m.id && styles.methodRowActive, !m.available && styles.methodRowDisabled]}
-            onPress={() => m.available && setPaymentMethod(m.id)}
-            activeOpacity={m.available ? 0.7 : 1}
-          >
-            <Ionicons name={m.icon as any} size={20} color={m.available ? '#FFFFFF' : '#4B5563'} style={{ marginRight: 12 }} />
-            <Text style={[styles.methodLabel, !m.available && styles.methodLabelDisabled]}>{m.label}</Text>
-            {!m.available && <Text style={styles.soon}>Soon</Text>}
-            {paymentMethod === m.id && m.available && (
-              <Ionicons name="checkmark-circle" size={20} color="#7C3AED" style={{ marginLeft: 'auto' }} />
-            )}
-          </TouchableOpacity>
-        ))}
-
-        <View style={styles.divider} />
-
-        {/* ── Shipping address ── */}
-        <Text style={styles.sectionTitle}>Shipping Address</Text>
-        <TextInput style={styles.input} placeholder="Full name" placeholderTextColor="#6B7280"
-          value={address.fullName} onChangeText={(v) => setAddress((a) => ({ ...a, fullName: v }))} />
-        <TextInput style={styles.input} placeholder="Phone number" placeholderTextColor="#6B7280"
+        {/* Shipping address */}
+        <Text style={styles.sectionTitle}>Teslimat Adresi</Text>
+        <TextInput style={styles.input} placeholder="Ad Soyad *" placeholderTextColor="#6B7280"
+          value={address.name} onChangeText={(v) => setAddress((a) => ({ ...a, name: v }))} />
+        <TextInput style={styles.input} placeholder="Telefon *" placeholderTextColor="#6B7280"
           value={address.phone} onChangeText={(v) => setAddress((a) => ({ ...a, phone: v }))} keyboardType="phone-pad" />
-        <TextInput style={styles.input} placeholder="Street address" placeholderTextColor="#6B7280"
+        <TextInput style={styles.input} placeholder="Adres satırı 1 *" placeholderTextColor="#6B7280"
           value={address.line1} onChangeText={(v) => setAddress((a) => ({ ...a, line1: v }))} />
+        <TextInput style={styles.input} placeholder="Adres satırı 2 (apartman, daire)" placeholderTextColor="#6B7280"
+          value={address.line2} onChangeText={(v) => setAddress((a) => ({ ...a, line2: v }))} />
         <View style={styles.row}>
-          <TextInput style={[styles.input, styles.flex]} placeholder="City" placeholderTextColor="#6B7280"
+          <TextInput style={[styles.input, styles.flex]} placeholder="İl *" placeholderTextColor="#6B7280"
             value={address.city} onChangeText={(v) => setAddress((a) => ({ ...a, city: v }))} />
-          <TextInput style={[styles.input, styles.flex]} placeholder="State" placeholderTextColor="#6B7280"
+          <TextInput style={[styles.input, styles.flex]} placeholder="İlçe" placeholderTextColor="#6B7280"
             value={address.state} onChangeText={(v) => setAddress((a) => ({ ...a, state: v }))} />
         </View>
         <View style={styles.row}>
-          <TextInput style={[styles.input, styles.flex]} placeholder="Postal code" placeholderTextColor="#6B7280"
+          <TextInput style={[styles.input, styles.flex]} placeholder="Posta kodu *" placeholderTextColor="#6B7280"
             value={address.postalCode} onChangeText={(v) => setAddress((a) => ({ ...a, postalCode: v }))} keyboardType="number-pad" />
-          <TextInput style={[styles.input, styles.flex]} placeholder="Country" placeholderTextColor="#6B7280"
+          <TextInput style={[styles.input, styles.flex]} placeholder="Ülke" placeholderTextColor="#6B7280"
             value={address.country} onChangeText={(v) => setAddress((a) => ({ ...a, country: v }))}
             autoCapitalize="characters" maxLength={2} />
         </View>
 
         <View style={styles.divider} />
 
-        {/* ── Order summary ── */}
-        <Text style={styles.sectionTitle}>Order Summary</Text>
-        {cart?.items?.map((item: any) => (
-          <View key={item.id} style={styles.lineItem}>
+        {/* Order summary */}
+        <Text style={styles.sectionTitle}>Sipariş Özeti</Text>
+        {cart?.items?.map((item) => (
+          <View key={item.variantId} style={styles.lineItem}>
             <Text style={styles.lineItemName} numberOfLines={1}>
-              {item.variant?.product?.title ?? 'Item'}{' '}
-              <Text style={styles.qty}>×{item.quantity}</Text>
+              {item.product?.title ?? 'Ürün'}{' '}
+              <Text style={styles.qty}>×{item.qty}</Text>
             </Text>
-            <Text style={styles.lineItemPrice}>₺{(item.variant.price * item.quantity).toFixed(2)}</Text>
+            <Text style={styles.lineItemPrice}>₺{item.lineTotal.toLocaleString('tr-TR')}</Text>
           </View>
         ))}
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalAmount}>₺{total.toFixed(2)}</Text>
+          <Text style={styles.totalLabel}>Toplam ({itemCount} ürün)</Text>
+          <Text style={styles.totalAmount}>₺{total.toLocaleString('tr-TR')}</Text>
         </View>
 
         <TouchableOpacity
@@ -151,7 +170,11 @@ export default function CheckoutScreen() {
           disabled={isPlacing}
           activeOpacity={0.85}
         >
-          {isPlacing ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.orderBtnText}>Place Order</Text>}
+          {isPlacing ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.orderBtnText}>Siparişi Tamamla</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </>
@@ -168,16 +191,6 @@ const styles = StyleSheet.create({
   },
   bannerText: { color: '#F59E0B', fontSize: 12, flex: 1 },
   sectionTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', marginBottom: 14 },
-  methodRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1F1F1F', borderRadius: 10, padding: 14,
-    marginBottom: 10, borderWidth: 1, borderColor: 'transparent',
-  },
-  methodRowActive: { borderColor: '#7C3AED' },
-  methodRowDisabled: { opacity: 0.45 },
-  methodLabel: { color: '#FFFFFF', fontSize: 15 },
-  methodLabelDisabled: { color: '#6B7280' },
-  soon: { marginLeft: 'auto', color: '#6B7280', fontSize: 11, fontStyle: 'italic' },
   input: {
     backgroundColor: '#1F1F1F', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 12,
