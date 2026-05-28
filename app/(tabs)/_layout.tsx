@@ -1,34 +1,55 @@
 import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCartStore } from '@/store/cartStore';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/theme/useTheme';
 
-// Icons (using text emoji as placeholder — swap with a vector icon library like lucide-react-native)
-function TabIcon({ label, focused, icon }: { label: string; focused: boolean; icon: string }) {
-  return (
-    <View style={styles.tabItem}>
-      <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>{icon}</Text>
-      <Text style={[styles.tabLabel, focused && styles.tabLabelFocused]}>{label}</Text>
-    </View>
-  );
-}
+/**
+ * Apple/iOS HIG-style tab bar:
+ * - Ionicons outline (inactive) → solid (focused)
+ * - Active tint = VibeHub brand purple (#9333EA, matches desktop)
+ * - Background + border auto-switch with system color scheme
+ * - 5 tabs only (HIG limit), Cart gets a badge instead of a FAB
+ * - Scan tab is registered for routing but hidden from the bar
+ *   (accessed via Home header camera button)
+ */
 
-function CartTabIcon({ focused, count }: { focused: boolean; count: number }) {
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+function TabIconBadge({
+  focused,
+  outline,
+  filled,
+  activeColor,
+  inactiveColor,
+  badgeCount,
+}: {
+  focused: boolean;
+  outline: IoniconName;
+  filled: IoniconName;
+  activeColor: string;
+  inactiveColor: string;
+  badgeCount?: number;
+}) {
   return (
-    <View style={[styles.cartButton, focused && styles.cartButtonFocused]}>
-      <Text style={styles.cartIcon}>🛍</Text>
-      {count > 0 && (
-        <View style={styles.cartBadge}>
-          <Text style={styles.cartBadgeText}>{count > 99 ? '99+' : count}</Text>
+    <View style={styles.iconWrap}>
+      <Ionicons
+        name={focused ? filled : outline}
+        size={24}
+        color={focused ? activeColor : inactiveColor}
+      />
+      {badgeCount && badgeCount > 0 ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{badgeCount > 99 ? '99+' : badgeCount}</Text>
         </View>
-      )}
+      ) : null}
     </View>
   );
 }
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
-  const itemCount = useCartStore((s) => s.itemCount);
+  const t = useTheme();
 
   return (
     <Tabs
@@ -38,17 +59,17 @@ export default function TabsLayout() {
         tabBarStyle: {
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom,
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#E5E7EB',
+          backgroundColor: t.navBg,
+          borderTopColor: t.navBorder,
           borderTopWidth: StyleSheet.hairlineWidth,
           elevation: 8,
           shadowColor: '#000',
-          shadowOpacity: 0.06,
+          shadowOpacity: t.isDark ? 0.4 : 0.06,
           shadowRadius: 8,
           shadowOffset: { width: 0, height: -2 },
         },
-        tabBarActiveTintColor: '#7C3AED',
-        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarActiveTintColor: t.brand,
+        tabBarInactiveTintColor: t.textMuted,
       }}
     >
       <Tabs.Screen
@@ -56,7 +77,10 @@ export default function TabsLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ focused }) => (
-            <TabIcon label="Home" focused={focused} icon="⌂" />
+            <TabIconBadge
+              focused={focused} outline="home-outline" filled="home"
+              activeColor={t.brand} inactiveColor={t.textMuted}
+            />
           ),
         }}
       />
@@ -65,15 +89,11 @@ export default function TabsLayout() {
         options={{
           title: 'Shop',
           tabBarIcon: ({ focused }) => (
-            <TabIcon label="Shop" focused={focused} icon="◈" />
+            <TabIconBadge
+              focused={focused} outline="storefront-outline" filled="storefront"
+              activeColor={t.brand} inactiveColor={t.textMuted}
+            />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="cart"
-        options={{
-          title: 'Cart',
-          tabBarIcon: ({ focused }) => <CartTabIcon focused={focused} count={itemCount} />,
         }}
       />
       <Tabs.Screen
@@ -81,7 +101,10 @@ export default function TabsLayout() {
         options={{
           title: 'Forum',
           tabBarIcon: ({ focused }) => (
-            <TabIcon label="Forum" focused={focused} icon="◉" />
+            <TabIconBadge
+              focused={focused} outline="chatbubbles-outline" filled="chatbubbles"
+              activeColor={t.brand} inactiveColor={t.textMuted}
+            />
           ),
         }}
       />
@@ -90,8 +113,19 @@ export default function TabsLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ focused }) => (
-            <TabIcon label="Profile" focused={focused} icon="◎" />
+            <TabIconBadge
+              focused={focused} outline="person-outline" filled="person"
+              activeColor={t.brand} inactiveColor={t.textMuted}
+            />
           ),
+        }}
+      />
+      {/* Scan tab is registered for routing but hidden from the bar */}
+      <Tabs.Screen
+        name="scan"
+        options={{
+          href: null,
+          title: 'Scan',
         }}
       />
     </Tabs>
@@ -99,60 +133,26 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabItem: {
+  iconWrap: {
+    width: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
   },
-  tabIcon: {
-    fontSize: 20,
-    color: '#9CA3AF',
-  },
-  tabIconFocused: {
-    color: '#7C3AED',
-  },
-  tabLabel: {
-    fontSize: 10,
-    color: '#9CA3AF',
-    fontWeight: '500',
-  },
-  tabLabelFocused: {
-    color: '#7C3AED',
-    fontWeight: '600',
-  },
-  cartButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#7C3AED',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Platform.OS === 'ios' ? 12 : 8,
-    shadowColor: '#7C3AED',
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-  cartButtonFocused: {
-    backgroundColor: '#6D28D9',
-  },
-  cartIcon: {
-    fontSize: 22,
-  },
-  cartBadge: {
+  badge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: -4,
+    right: -8,
     minWidth: 16,
     height: 16,
     borderRadius: 8,
     backgroundColor: '#EF4444',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
   },
-  cartBadgeText: {
+  badgeText: {
     fontSize: 9,
     fontWeight: '700',
     color: '#FFFFFF',

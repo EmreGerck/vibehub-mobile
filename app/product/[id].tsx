@@ -11,10 +11,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { useProduct } from '@/hooks/useProducts';
 import { useAddToCart } from '@/hooks/useCart';
-import { addToWishlist, removeFromWishlist } from '@/api/wishlist';
+import { toggleWishlist } from '@/api/wishlist';
+import { Palette } from '@/theme/useTheme';
 import type { ProductVariant } from '@/types';
 
 const { width } = Dimensions.get('window');
@@ -28,10 +30,15 @@ export default function ProductDetailScreen() {
   const [activeImage, setActiveImage] = useState(0);
   const [wishlisted, setWishlisted] = useState(false);
 
+  // Sync wishlist state from backend (was previously hardcoded to false)
+  useEffect(() => {
+    if (product?.isWishlisted !== undefined) setWishlisted(!!product.isWishlisted);
+  }, [product?.id, product?.isWishlisted]);
+
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={Palette.brand} />
       </View>
     );
   }
@@ -48,26 +55,26 @@ export default function ProductDetailScreen() {
       { variantId: variant.id, qty: 1 },
       {
         onSuccess: () =>
-          Alert.alert('Added to cart', product!.name, [
-            { text: 'View cart', onPress: () => router.push('/(tabs)/cart') },
-            { text: 'Continue shopping', style: 'cancel' },
+          Alert.alert('Sepete eklendi', product!.name, [
+            { text: 'Sepete Git', onPress: () => router.push('/cart') },
+            { text: 'Alışverişe Devam', style: 'cancel' },
           ]),
-        onError: () => Alert.alert('Error', 'Failed to add to cart.'),
+        onError: () => Alert.alert('Hata', 'Ürün sepete eklenemedi.'),
       },
     );
   }
 
   async function handleShare() {
-    await Share.share({ message: `Check out ${product!.name} on VibeHub!` });
+    await Share.share({ message: `${product!.name} ürününe VibeHub'tan göz at!` });
   }
 
+  // Backend toggle returns { added: boolean } — single endpoint handles add+remove
   async function handleWishlist() {
-    if (wishlisted) {
-      await removeFromWishlist(product!.id);
-      setWishlisted(false);
-    } else {
-      await addToWishlist(product!.id);
-      setWishlisted(true);
+    try {
+      const added = await toggleWishlist(product!.id);
+      setWishlisted(added);
+    } catch {
+      Alert.alert('Hata', 'İstek listesi güncellenemedi.');
     }
   }
 
@@ -101,15 +108,19 @@ export default function ProductDetailScreen() {
               ))}
             </View>
           )}
-          {/* Nav buttons */}
+          {/* Nav buttons — Apple-style Ionicons */}
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>←</Text>
+            <Ionicons name="chevron-back" size={22} color="#111827" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
-            <Text style={styles.shareIcon}>↑</Text>
+            <Ionicons name="share-outline" size={20} color="#111827" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.wishlistBtn} onPress={handleWishlist}>
-            <Text style={styles.wishlistIcon}>{wishlisted ? '♥' : '♡'}</Text>
+            <Ionicons
+              name={wishlisted ? 'heart' : 'heart-outline'}
+              size={22}
+              color={wishlisted ? '#EF4444' : '#111827'}
+            />
           </TouchableOpacity>
         </View>
 
@@ -139,14 +150,14 @@ export default function ProductDetailScreen() {
           {/* Rating */}
           {product.rating && (
             <Text style={styles.rating}>
-              ★ {product.rating.toFixed(1)} ({product.reviewCount} reviews)
+              ★ {product.rating.toFixed(1)} ({product.reviewCount} değerlendirme)
             </Text>
           )}
 
           {/* Sizes */}
           {sizes.length > 0 && (
             <View style={styles.optionSection}>
-              <Text style={styles.optionLabel}>Size</Text>
+              <Text style={styles.optionLabel}>Beden</Text>
               <View style={styles.optionRow}>
                 {sizes.map((size) => {
                   const v = product.variants.find(
@@ -172,7 +183,7 @@ export default function ProductDetailScreen() {
           {/* Colors */}
           {colors.length > 0 && (
             <View style={styles.optionSection}>
-              <Text style={styles.optionLabel}>Color</Text>
+              <Text style={styles.optionLabel}>Renk</Text>
               <View style={styles.optionRow}>
                 {colors.map((color) => {
                   const v = product.variants.find(
@@ -196,7 +207,7 @@ export default function ProductDetailScreen() {
           {/* Description */}
           {product.description && (
             <View style={styles.descSection}>
-              <Text style={styles.optionLabel}>About this product</Text>
+              <Text style={styles.optionLabel}>Ürün hakkında</Text>
               <Text style={styles.description}>{product.description}</Text>
             </View>
           )}
@@ -213,10 +224,10 @@ export default function ProductDetailScreen() {
         >
           <Text style={styles.addBtnText}>
             {variant?.stock === 0
-              ? 'Out of stock'
+              ? 'Stokta yok'
               : addingToCart
-              ? 'Adding…'
-              : 'Add to cart'}
+              ? 'Ekleniyor…'
+              : 'Sepete Ekle'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -273,12 +284,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  wishlistIcon: { fontSize: 18, color: '#7C3AED' },
+  wishlistIcon: { fontSize: 18, color: '#9333EA' },
   info: { padding: 20, gap: 10 },
-  vendorName: { fontSize: 13, color: '#7C3AED', fontWeight: '600', textTransform: 'uppercase' },
+  vendorName: { fontSize: 13, color: '#9333EA', fontWeight: '600', textTransform: 'uppercase' },
   productName: { fontSize: 22, fontWeight: '800', color: '#111827', lineHeight: 28 },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  price: { fontSize: 22, fontWeight: '800', color: '#7C3AED' },
+  price: { fontSize: 22, fontWeight: '800', color: '#9333EA' },
   comparePrice: { fontSize: 16, color: '#9CA3AF', textDecorationLine: 'line-through' },
   discountBadge: {
     backgroundColor: '#FEF2F2',
@@ -299,7 +310,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     backgroundColor: '#F9FAFB',
   },
-  sizeChipActive: { borderColor: '#7C3AED', backgroundColor: '#F5F3FF' },
+  sizeChipActive: { borderColor: '#9333EA', backgroundColor: '#F5F3FF' },
   sizeChipOOS: { opacity: 0.4 },
   colorChip: {
     paddingHorizontal: 14,
@@ -309,9 +320,9 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     backgroundColor: '#F9FAFB',
   },
-  colorChipActive: { borderColor: '#7C3AED', backgroundColor: '#F5F3FF' },
+  colorChipActive: { borderColor: '#9333EA', backgroundColor: '#F5F3FF' },
   sizeText: { fontSize: 14, color: '#374151', fontWeight: '500' },
-  sizeTextActive: { color: '#7C3AED', fontWeight: '700' },
+  sizeTextActive: { color: '#9333EA', fontWeight: '700' },
   descSection: { gap: 8, marginTop: 8 },
   description: { fontSize: 14, color: '#6B7280', lineHeight: 22 },
   cta: {
@@ -322,11 +333,11 @@ const styles = StyleSheet.create({
   },
   addBtn: {
     height: 52,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#9333EA',
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#7C3AED',
+    shadowColor: '#9333EA',
     shadowOpacity: 0.35,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },

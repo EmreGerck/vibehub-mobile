@@ -11,17 +11,20 @@ import {
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { useLogin } from '@/hooks/useAuth';
+import { useTheme, Palette } from '@/theme/useTheme';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { mutate: login, isPending } = useLogin();
+  const t = useTheme();
 
   function handleLogin() {
     if (!email.trim() || !password) {
-      Alert.alert('Missing fields', 'Please enter your email and password.');
+      Alert.alert('Eksik alan', 'Lütfen e-posta ve şifreni gir.');
       return;
     }
     login(
@@ -29,8 +32,8 @@ export default function LoginScreen() {
       {
         onSuccess: () => router.replace('/(tabs)/home'),
         onError: (err: any) => {
-          const msg = err?.response?.data?.message ?? 'Login failed. Please try again.';
-          Alert.alert('Error', msg);
+          const msg = err?.response?.data?.message ?? 'Giriş yapılamadı. Lütfen tekrar dene.';
+          Alert.alert('Hata', msg);
         },
       },
     );
@@ -38,47 +41,53 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: t.bgBody }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        {/* Header */}
+        {/* Header — logo + tagline */}
         <View style={styles.header}>
-          <Text style={styles.logo}>vibehub</Text>
-          <Text style={styles.tagline}>Merch for fans, by fans</Text>
+          <Text style={[styles.logo, { color: Palette.brand }]}>VibeHub</Text>
+          <Text style={[styles.tagline, { color: t.textSecondary }]}>
+            Sanatçıların resmi merch'i
+          </Text>
         </View>
 
         {/* Form */}
         <View style={styles.form}>
-          <Text style={styles.title}>Welcome back</Text>
+          <Text style={[styles.title, { color: t.textPrimary }]}>Tekrar hoş geldin</Text>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="you@example.com"
-              placeholderTextColor="#9CA3AF"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              value={email}
-              onChangeText={setEmail}
-              returnKeyType="next"
-            />
+            <Text style={[styles.label, { color: t.textSecondary }]}>E-posta</Text>
+            <View style={[styles.inputWrap, { backgroundColor: t.bgInput, borderColor: t.borderSecondary }]}>
+              <Ionicons name="mail-outline" size={18} color={t.textMuted} style={{ marginRight: 10 }} />
+              <TextInput
+                style={[styles.input, { color: t.textPrimary }]}
+                placeholder="siz@ornek.com"
+                placeholderTextColor={t.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={email}
+                onChangeText={setEmail}
+                returnKeyType="next"
+              />
+            </View>
           </View>
 
           <View style={styles.field}>
             <View style={styles.labelRow}>
-              <Text style={styles.label}>Password</Text>
-              <Link href="/(auth)/forgot-password" style={styles.forgotLink}>
-                Forgot password?
+              <Text style={[styles.label, { color: t.textSecondary }]}>Şifre</Text>
+              <Link href="/(auth)/forgot-password" style={[styles.forgotLink, { color: Palette.brand }]}>
+                Şifremi unuttum
               </Link>
             </View>
-            <View style={styles.passwordWrap}>
+            <View style={[styles.inputWrap, { backgroundColor: t.bgInput, borderColor: t.borderSecondary }]}>
+              <Ionicons name="lock-closed-outline" size={18} color={t.textMuted} style={{ marginRight: 10 }} />
               <TextInput
-                style={[styles.input, styles.passwordInput]}
+                style={[styles.input, { color: t.textPrimary }]}
                 placeholder="••••••••"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={t.textMuted}
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
@@ -86,36 +95,39 @@ export default function LoginScreen() {
                 onSubmitEditing={handleLogin}
               />
               <TouchableOpacity
-                style={styles.eyeBtn}
                 onPress={() => setShowPassword((v) => !v)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁'}</Text>
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={t.textMuted}
+                />
               </TouchableOpacity>
             </View>
           </View>
 
           <TouchableOpacity
-            style={[styles.primaryBtn, isPending && styles.primaryBtnDisabled]}
+            style={[styles.primaryBtn, { backgroundColor: Palette.brand, shadowColor: Palette.brand }, isPending && styles.primaryBtnDisabled]}
             onPress={handleLogin}
             disabled={isPending}
             activeOpacity={0.85}
           >
             <Text style={styles.primaryBtnText}>
-              {isPending ? 'Signing in…' : 'Sign in'}
+              {isPending ? 'Giriş yapılıyor…' : 'Giriş Yap'}
             </Text>
           </TouchableOpacity>
 
           <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
+            <View style={[styles.dividerLine, { backgroundColor: t.borderPrimary }]} />
+            <Text style={[styles.dividerText, { color: t.textMuted }]}>veya</Text>
+            <View style={[styles.dividerLine, { backgroundColor: t.borderPrimary }]} />
           </View>
 
           <View style={styles.registerRow}>
-            <Text style={styles.registerText}>Don't have an account? </Text>
-            <Link href="/(auth)/register" style={styles.registerLink}>
-              Sign up
+            <Text style={[styles.registerText, { color: t.textSecondary }]}>Hesabın yok mu? </Text>
+            <Link href="/(auth)/register" style={[styles.registerLink, { color: Palette.brand }]}>
+              Kayıt Ol
             </Link>
           </View>
         </View>
@@ -125,7 +137,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#FFFFFF' },
+  flex: { flex: 1 },
   container: {
     flexGrow: 1,
     paddingHorizontal: 24,
@@ -133,52 +145,34 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: { alignItems: 'center', marginBottom: 48 },
-  logo: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#7C3AED',
-    letterSpacing: -1,
-  },
-  tagline: { fontSize: 14, color: '#6B7280', marginTop: 4 },
+  logo: { fontSize: 36, fontWeight: '800', letterSpacing: -1 },
+  tagline: { fontSize: 14, marginTop: 4 },
   form: { gap: 16 },
-  title: { fontSize: 24, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  title: { fontSize: 24, fontWeight: '700', marginBottom: 8 },
   field: { gap: 6 },
-  label: { fontSize: 14, fontWeight: '600', color: '#374151' },
+  label: { fontSize: 14, fontWeight: '600' },
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  forgotLink: { fontSize: 13, color: '#7C3AED', fontWeight: '500' },
-  input: {
+  forgotLink: { fontSize: 13, fontWeight: '500' },
+  inputWrap: {
     height: 48,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
     borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 15,
-    color: '#111827',
-    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  passwordWrap: { position: 'relative' },
-  passwordInput: { paddingRight: 48 },
-  eyeBtn: {
-    position: 'absolute',
-    right: 14,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-  },
-  eyeIcon: { fontSize: 18 },
+  input: { flex: 1, fontSize: 15, height: '100%' },
   primaryBtn: {
     height: 52,
-    backgroundColor: '#7C3AED',
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
-    shadowColor: '#7C3AED',
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
@@ -191,9 +185,9 @@ const styles = StyleSheet.create({
     gap: 12,
     marginVertical: 4,
   },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
-  dividerText: { fontSize: 13, color: '#9CA3AF' },
+  dividerLine: { flex: 1, height: 1 },
+  dividerText: { fontSize: 13 },
   registerRow: { flexDirection: 'row', justifyContent: 'center' },
-  registerText: { fontSize: 14, color: '#6B7280' },
-  registerLink: { fontSize: 14, color: '#7C3AED', fontWeight: '600' },
+  registerText: { fontSize: 14 },
+  registerLink: { fontSize: 14, fontWeight: '600' },
 });

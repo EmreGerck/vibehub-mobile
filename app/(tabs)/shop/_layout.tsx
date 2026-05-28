@@ -5,13 +5,12 @@ export default function ShopStackLayout() {
     <Stack
       screenOptions={{
         headerStyle: { backgroundColor: '#FFFFFF' },
-        headerTintColor: '#7C3AED',
+        headerTintColor: '#9333EA',
         headerTitleStyle: { fontWeight: '700' },
         headerShadowVisible: false,
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="cart" options={{ title: 'My Cart', headerShown: true }} />
     </Stack>
   );
 }

@@ -11,7 +11,13 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useState, useEffect, useRef } from 'react';
-import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager';
+
+// react-native-nfc-manager has no web/simulator implementation — dynamic require
+// + Platform guard prevents a crash when running `npx expo start --web` or in
+// the iOS simulator without an NFC chip.
+const NfcManager: any = Platform.OS === 'web' ? null : require('react-native-nfc-manager').default;
+const NfcTech: any = Platform.OS === 'web' ? null : require('react-native-nfc-manager').NfcTech;
+const Ndef: any = Platform.OS === 'web' ? null : require('react-native-nfc-manager').Ndef;
 
 type Mode = 'qr' | 'nfc';
 
@@ -23,15 +29,16 @@ export default function ScanScreen() {
   const [nfcReady, setNfcReady] = useState(false);
   const scannedRef = useRef(false);
 
-  // NFC init
+  // NFC init — skip on web/simulator where the native module isn't available
   useEffect(() => {
-    NfcManager.isSupported().then((supported) => {
+    if (!NfcManager) return;
+    NfcManager.isSupported().then((supported: boolean) => {
       if (supported) {
         NfcManager.start().then(() => setNfcReady(true));
       }
-    });
+    }).catch(() => { /* no NFC hardware → silently ignore */ });
     return () => {
-      NfcManager.cancelTechnologyRequest().catch(() => {});
+      NfcManager?.cancelTechnologyRequest().catch(() => {});
     };
   }, []);
 
@@ -46,7 +53,7 @@ export default function ScanScreen() {
 
   // ─── NFC handler ─────────────────────────────────────────────────────────
   async function startNfcScan() {
-    if (!nfcReady) {
+    if (!NfcManager || !nfcReady) {
       Alert.alert('NFC not available', 'Your device does not support NFC or it is disabled.');
       return;
     }
@@ -65,7 +72,7 @@ export default function ScanScreen() {
         Alert.alert('Scan failed', 'Could not read the NFC tag. Try again.');
       }
     } finally {
-      NfcManager.cancelTechnologyRequest().catch(() => {});
+      NfcManager?.cancelTechnologyRequest().catch(() => {});
       setScanning(false);
     }
   }

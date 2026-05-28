@@ -10,11 +10,14 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useCart, useUpdateCartItem, useRemoveCartItem } from '@/hooks/useCart';
 import { useCartStore } from '@/store/cartStore';
 import type { CartItem } from '@/types';
 
 export default function CartTabScreen() {
+  // Cart used to be a tab — now it's a regular Stack screen pushed from any
+  // top-right bag icon. Custom header carries title + item count + back button.
   const { data: cart, isLoading } = useCart();
   const itemCount = useCartStore((s) => s.itemCount);
   const { mutate: updateItem } = useUpdateCartItem();
@@ -24,10 +27,15 @@ export default function CartTabScreen() {
     router.push('/checkout');
   }
 
+  function handleBack() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/home');
+  }
+
   function handleRemove(variantId: string) {
-    Alert.alert('Remove item', 'Remove this item from your cart?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => removeItem(variantId) },
+    Alert.alert('Sepetten Çıkar', 'Bu ürünü sepetinden çıkarmak istediğine emin misin?', [
+      { text: 'Vazgeç', style: 'cancel' },
+      { text: 'Çıkar', style: 'destructive', onPress: () => removeItem(variantId) },
     ]);
   }
 
@@ -84,10 +92,14 @@ export default function CartTabScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Cart</Text>
+          <TouchableOpacity onPress={handleBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="chevron-back" size={26} color="#111827" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Sepetim</Text>
+          <View style={{ width: 26 }} />
         </View>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#7C3AED" />
+          <ActivityIndicator size="large" color="#9333EA" />
         </View>
       </SafeAreaView>
     );
@@ -97,18 +109,22 @@ export default function CartTabScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Cart</Text>
+          <TouchableOpacity onPress={handleBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="chevron-back" size={26} color="#111827" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Sepetim</Text>
+          <View style={{ width: 26 }} />
         </View>
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>🛍️</Text>
-          <Text style={styles.emptyTitle}>Your cart is empty</Text>
-          <Text style={styles.emptySubtext}>Discover the latest drops and add your favorites</Text>
+          <Text style={styles.emptyTitle}>Sepetin boş</Text>
+          <Text style={styles.emptySubtext}>Sevdiğin sanatçıların ürünlerini keşfet</Text>
           <TouchableOpacity
             style={styles.browseBtn}
             onPress={() => router.push('/(tabs)/shop')}
             activeOpacity={0.85}
           >
-            <Text style={styles.browseBtnText}>Browse drops →</Text>
+            <Text style={styles.browseBtnText}>Ürünlere Göz At →</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -118,8 +134,14 @@ export default function CartTabScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Cart</Text>
-        <Text style={styles.headerCount}>{itemCount} {itemCount === 1 ? 'item' : 'items'}</Text>
+        <TouchableOpacity onPress={handleBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="chevron-back" size={26} color="#111827" />
+        </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: 'center' }}>
+          <Text style={styles.headerTitle}>Sepetim</Text>
+          <Text style={styles.headerCount}>{itemCount} {itemCount === 1 ? 'ürün' : 'ürün'}</Text>
+        </View>
+        <View style={{ width: 26 }} />
       </View>
 
       <FlatList
@@ -133,7 +155,7 @@ export default function CartTabScreen() {
 
       <View style={styles.footer}>
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Subtotal</Text>
+          <Text style={styles.totalLabel}>Ara Toplam</Text>
           <Text style={styles.totalValue}>₺{cart.total.toLocaleString('tr-TR')}</Text>
         </View>
         <TouchableOpacity
@@ -142,7 +164,7 @@ export default function CartTabScreen() {
           activeOpacity={0.85}
         >
           <Text style={styles.checkoutBtnText}>
-            Proceed to Checkout · ₺{cart.total.toLocaleString('tr-TR')}
+            Ödemeye Geç · ₺{cart.total.toLocaleString('tr-TR')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -205,9 +227,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 28,
     paddingVertical: 14,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#9333EA',
     borderRadius: 14,
-    shadowColor: '#7C3AED',
+    shadowColor: '#9333EA',
     shadowOpacity: 0.3,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
@@ -259,7 +281,7 @@ const styles = StyleSheet.create({
   itemPrice: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: '#9333EA',
   },
   controls: {
     alignItems: 'center',
@@ -327,11 +349,11 @@ const styles = StyleSheet.create({
   },
   checkoutBtn: {
     height: 54,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#9333EA',
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#7C3AED',
+    shadowColor: '#9333EA',
     shadowOpacity: 0.35,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },

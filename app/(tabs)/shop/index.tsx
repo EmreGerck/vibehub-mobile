@@ -6,32 +6,34 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useState, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { useProducts } from '@/hooks/useProducts';
 import { ProductCard } from '@/components/ProductCard';
 import { useCartStore } from '@/store/cartStore';
+import { useTheme, Palette } from '@/theme/useTheme';
 import type { Product } from '@/types';
 
 const SORT_OPTIONS = [
-  { key: 'newest',     label: 'Newest' },
-  { key: 'popular',   label: 'Popular' },
-  { key: 'price_asc', label: 'Price ↑' },
-  { key: 'price_desc',label: 'Price ↓' },
+  { key: 'newest',     label: 'Yeni' },
+  { key: 'popular',    label: 'Popüler' },
+  { key: 'price_asc',  label: 'Fiyat ↑' },
+  { key: 'price_desc', label: 'Fiyat ↓' },
 ] as const;
 
 export default function ShopScreen() {
   const insets = useSafeAreaInsets();
   const itemCount = useCartStore((s) => s.itemCount);
+  const t = useTheme();
 
-  const [search, setSearch]   = useState('');
-  const [sortBy, setSortBy]   = useState<string>('newest');
-  const [query, setQuery]     = useState('');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<string>('newest');
+  const [query, setQuery]   = useState('');
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, refetch } =
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useProducts({ search: query, sortBy: sortBy as any });
 
   const products = data?.pages.flatMap((p) => p.data) ?? [];
@@ -43,18 +45,19 @@ export default function ShopScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { backgroundColor: t.bgBody, paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Shop</Text>
+        <Text style={[styles.title, { color: t.textPrimary }]}>Mağaza</Text>
         <TouchableOpacity
           style={styles.cartBtn}
-          onPress={() => router.push('/(tabs)/shop/cart')}
+          onPress={() => router.push('/cart')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.cartIcon}>🛒</Text>
+          <Ionicons name={itemCount > 0 ? 'bag' : 'bag-outline'} size={26} color={t.textPrimary} />
           {itemCount > 0 && (
             <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>{itemCount}</Text>
+              <Text style={styles.cartBadgeText}>{itemCount > 99 ? '99+' : itemCount}</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -62,43 +65,51 @@ export default function ShopScreen() {
 
       {/* Search bar */}
       <View style={styles.searchRow}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search products or artists…"
-          placeholderTextColor="#9CA3AF"
-          value={search}
-          onChangeText={setSearch}
-          returnKeyType="search"
-          onSubmitEditing={handleSearch}
-        />
-        <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
-          <Text style={styles.searchBtnText}>Search</Text>
+        <View style={[styles.searchInputWrap, { backgroundColor: t.bgCard, borderColor: t.borderPrimary }]}>
+          <Ionicons name="search" size={18} color={t.textMuted} style={{ marginRight: 8 }} />
+          <TextInput
+            style={[styles.searchInput, { color: t.textPrimary }]}
+            placeholder="Ürün veya sanatçı ara…"
+            placeholderTextColor={t.textMuted}
+            value={search}
+            onChangeText={setSearch}
+            returnKeyType="search"
+            onSubmitEditing={handleSearch}
+          />
+        </View>
+        <TouchableOpacity style={[styles.searchBtn, { backgroundColor: Palette.brand }]} onPress={handleSearch}>
+          <Text style={styles.searchBtnText}>Ara</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Sort chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.sortRow}
-      >
-        {SORT_OPTIONS.map((opt) => (
-          <TouchableOpacity
-            key={opt.key}
-            style={[styles.chip, sortBy === opt.key && styles.chipActive]}
-            onPress={() => setSortBy(opt.key)}
-          >
-            <Text style={[styles.chipText, sortBy === opt.key && styles.chipTextActive]}>
-              {opt.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {/* Sort chips — fixed-height row (was rendering 600px tall in web before)
+          ScrollView was inheriting `flex: 1` and stretching vertically;
+          replaced with a plain row View with horizontal overflow. */}
+      <View style={styles.sortRow}>
+        {SORT_OPTIONS.map((opt) => {
+          const active = sortBy === opt.key;
+          return (
+            <TouchableOpacity
+              key={opt.key}
+              style={[
+                styles.chip,
+                { backgroundColor: t.bgCard, borderColor: t.borderPrimary },
+                active && { backgroundColor: Palette.brand, borderColor: Palette.brand },
+              ]}
+              onPress={() => setSortBy(opt.key)}
+            >
+              <Text style={[styles.chipText, { color: t.textSecondary }, active && styles.chipTextActive]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       {/* Product grid */}
       {isLoading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#7C3AED" />
+          <ActivityIndicator size="large" color={Palette.brand} />
         </View>
       ) : (
         <FlatList
@@ -112,12 +123,13 @@ export default function ShopScreen() {
           onEndReachedThreshold={0.5}
           ListFooterComponent={
             isFetchingNextPage ? (
-              <ActivityIndicator size="small" color="#7C3AED" style={{ marginVertical: 16 }} />
+              <ActivityIndicator size="small" color={Palette.brand} style={{ marginVertical: 16 }} />
             ) : null
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>No products found</Text>
+              <Ionicons name="storefront-outline" size={48} color={t.textMuted} />
+              <Text style={[styles.emptyText, { color: t.textMuted }]}>Ürün bulunamadı</Text>
             </View>
           }
           showsVerticalScrollIndicator={false}
@@ -128,7 +140,7 @@ export default function ShopScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F7FF' },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -136,55 +148,68 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  title: { fontSize: 28, fontWeight: '800', color: '#111827' },
+  title: { fontSize: 28, fontWeight: '800' },
   cartBtn: { position: 'relative', padding: 4 },
-  cartIcon: { fontSize: 26 },
   cartBadge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
+    top: -2,
+    right: -2,
     backgroundColor: '#EF4444',
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   cartBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
-  searchRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 10 },
-  searchInput: {
+
+  searchRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 10,
+  },
+  searchInputWrap: {
     flex: 1,
     height: 44,
-    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: 12,
     paddingHorizontal: 14,
-    fontSize: 14,
-    color: '#111827',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
+  searchInput: { flex: 1, fontSize: 14, height: '100%' },
   searchBtn: {
-    backgroundColor: '#7C3AED',
     borderRadius: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     justifyContent: 'center',
   },
   searchBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
-  sortRow: { paddingHorizontal: 16, gap: 8, paddingBottom: 10 },
+
+  // Fixed-height chip row — flex direction row, no vertical stretch
+  sortRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    gap: 8,
+    paddingBottom: 12,
+  },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    alignSelf: 'flex-start',
   },
-  chipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
-  chipText: { fontSize: 13, color: '#374151', fontWeight: '500' },
+  chipText: { fontSize: 13, fontWeight: '500' },
   chipTextActive: { color: '#FFFFFF', fontWeight: '700' },
+
   grid: { paddingHorizontal: 12, paddingBottom: 24 },
   row: { gap: 12, marginBottom: 12, paddingHorizontal: 4 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 60 },
-  empty: { alignItems: 'center', marginTop: 60 },
-  emptyText: { fontSize: 16, color: '#9CA3AF' },
+  empty: { alignItems: 'center', marginTop: 60, gap: 8 },
+  emptyText: { fontSize: 16 },
 });

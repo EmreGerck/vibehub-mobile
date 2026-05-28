@@ -9,11 +9,15 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
 import { useLogout } from '@/hooks/useAuth';
+import { useTheme, Palette } from '@/theme/useTheme';
+
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 interface MenuRow {
-  icon: string;
+  icon: IoniconName;
   label: string;
   route?: string;
   onPress?: () => void;
@@ -24,12 +28,13 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
   const { mutate: logout } = useLogout();
+  const t = useTheme();
 
   function handleLogout() {
-    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert('Çıkış Yap', 'Hesabından çıkmak istediğine emin misin?', [
+      { text: 'Vazgeç', style: 'cancel' },
       {
-        text: 'Sign out',
+        text: 'Çıkış Yap',
         style: 'destructive',
         onPress: () =>
           logout(undefined, {
@@ -39,79 +44,109 @@ export default function ProfileScreen() {
     ]);
   }
 
+  // Apple HIG outline icons (iOS-flavored)
   const menuItems: MenuRow[] = [
-    { icon: '📦', label: 'My Orders',       route: '/(tabs)/profile/orders' },
-    { icon: '♥',  label: 'Wishlist',         route: '/(tabs)/profile/wishlist' },
-    { icon: '🔔', label: 'Notifications',    route: '/(tabs)/profile/notifications' },
-    { icon: '👥', label: 'Following',        route: '/(tabs)/profile/following' },
-    { icon: '⚙️', label: 'Settings',         route: '/(tabs)/profile/settings' },
-    { icon: '🚪', label: 'Sign out',         onPress: handleLogout, danger: true },
+    { icon: 'cube-outline',         label: 'Siparişlerim',     route: '/(tabs)/profile/orders' },
+    { icon: 'heart-outline',        label: 'İstek Listem',     route: '/(tabs)/profile/wishlist' },
+    { icon: 'notifications-outline', label: 'Bildirimler',     route: '/(tabs)/profile/notifications' },
+    { icon: 'people-outline',       label: 'Takip Ettiklerim', route: '/(tabs)/profile/following' },
+    { icon: 'settings-outline',     label: 'Ayarlar',          route: '/(tabs)/profile/settings' },
+    { icon: 'log-out-outline',      label: 'Çıkış Yap',        onPress: handleLogout, danger: true },
   ];
+
+  // Avatar fallback: first letter of email or "?"
+  const initial = (user?.email?.[0] ?? '?').toUpperCase();
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: t.bgBody }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
       showsVerticalScrollIndicator={false}
     >
       {/* Avatar + name */}
       <View style={styles.avatarSection}>
-        <Image
-          source={{
-            uri: user?.avatarUrl ?? 'https://placehold.co/100x100/EDE9FE/7C3AED?text=VW',
-          }}
-          style={styles.avatar}
-        />
-        <Text style={styles.name}>
-          {user?.firstName} {user?.lastName}
-        </Text>
-        <Text style={styles.email}>{user?.email}</Text>
+        {user?.avatarUrl ? (
+          <Image
+            source={{ uri: user.avatarUrl }}
+            style={[styles.avatar, { borderColor: Palette.brand }]}
+          />
+        ) : (
+          <View style={[styles.avatarFallback, { borderColor: Palette.brand, backgroundColor: t.bgCard }]}>
+            <Text style={[styles.avatarInitial, { color: Palette.brand }]}>{initial}</Text>
+          </View>
+        )}
+        {(user as any)?.name ? (
+          <Text style={[styles.name, { color: t.textPrimary }]}>{(user as any).name}</Text>
+        ) : null}
+        <Text style={[styles.email, { color: t.textSecondary }]}>{user?.email}</Text>
       </View>
 
       {/* Menu */}
-      <View style={styles.menu}>
+      <View style={[styles.menu, { backgroundColor: t.bgCard }]}>
         {menuItems.map((item, idx) => (
           <TouchableOpacity
             key={idx}
-            style={[styles.menuRow, item.danger && styles.menuRowDanger]}
+            style={[
+              styles.menuRow,
+              { borderBottomColor: t.borderPrimary },
+              idx === menuItems.length - 1 && styles.menuRowLast,
+            ]}
             onPress={item.onPress ?? (() => item.route && router.push(item.route as any))}
-            activeOpacity={0.8}
+            activeOpacity={0.7}
           >
-            <Text style={styles.menuIcon}>{item.icon}</Text>
-            <Text style={[styles.menuLabel, item.danger && styles.menuLabelDanger]}>
+            <Ionicons
+              name={item.icon}
+              size={22}
+              color={item.danger ? '#EF4444' : t.textSecondary}
+              style={{ width: 28 }}
+            />
+            <Text style={[
+              styles.menuLabel,
+              { color: t.textPrimary },
+              item.danger && styles.menuLabelDanger,
+            ]}>
               {item.label}
             </Text>
-            {!item.danger && <Text style={styles.chevron}>›</Text>}
+            {!item.danger && (
+              <Ionicons name="chevron-forward" size={18} color={t.textMuted} />
+            )}
           </TouchableOpacity>
         ))}
       </View>
 
-      <Text style={styles.version}>VibeHub v1.0.0</Text>
+      <Text style={[styles.version, { color: t.textMuted }]}>VibeHub v1.0.0</Text>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F7FF' },
+  container: { flex: 1 },
   content: { paddingHorizontal: 20, paddingBottom: 40, gap: 24 },
   avatarSection: { alignItems: 'center', gap: 8 },
   avatar: {
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: '#EDE9FE',
     borderWidth: 3,
-    borderColor: '#7C3AED',
   },
-  name: { fontSize: 22, fontWeight: '800', color: '#111827' },
-  email: { fontSize: 14, color: '#6B7280' },
+  avatarFallback: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: { fontSize: 36, fontWeight: '800' },
+  name: { fontSize: 22, fontWeight: '800' },
+  email: { fontSize: 14 },
   menu: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
   menuRow: {
@@ -119,14 +154,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 12,
   },
-  menuRowDanger: { borderBottomWidth: 0 },
-  menuIcon: { fontSize: 20, width: 28 },
-  menuLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: '#111827' },
+  menuRowLast: { borderBottomWidth: 0 },
+  menuLabel: { flex: 1, fontSize: 15, fontWeight: '600' },
   menuLabelDanger: { color: '#EF4444' },
-  chevron: { fontSize: 22, color: '#D1D5DB' },
-  version: { textAlign: 'center', fontSize: 12, color: '#D1D5DB' },
+  version: { textAlign: 'center', fontSize: 12 },
 });

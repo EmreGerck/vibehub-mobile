@@ -3,15 +3,22 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { registerPushToken } from '../api/notifications';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Web has no native push notifications — guard so the app doesn't crash
+// when running via `npx expo start --web` for browser-based testing.
+const IS_WEB = Platform.OS === 'web';
+
+if (!IS_WEB) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 export async function registerForPushNotificationsAsync(): Promise<void> {
+  if (IS_WEB) return;             // no-op on web
   if (!Constants.isDevice) return; // Skip in simulator
 
   const { status: existing } = await Notifications.getPermissionsAsync();
